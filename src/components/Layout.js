@@ -7,12 +7,13 @@ import {
 import {
   Dashboard, Category, Inventory2, Logout, ShoppingCart,
   Receipt, HelpOutline, Policy, People, Business, Menu as MenuIcon,
-  StorefrontRounded
+  StorefrontRounded, Campaign
 } from '@mui/icons-material';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { SnackbarProvider } from 'notistack';
 import { getRole, isSuperAdmin } from '../auth';
+import NotificationBell from './NotificationBell';
 
 const drawerWidth = 240;
 
@@ -24,7 +25,8 @@ const ALL_MENU = [
   { text: 'Products',       icon: <Inventory2 />,   path: '/products',        roles: ['superadmin','admin'] },
   { text: 'Users',          icon: <People />,       path: '/users',           roles: ['superadmin','admin'] },
   { text: 'Orders',         icon: <Receipt />,      path: '/orders',          roles: ['superadmin','admin'] },
-  { text: 'Place Order',    icon: <ShoppingCart />, path: '/place-order',     roles: ['superadmin','admin'] },
+  // { text: 'Place Order',    icon: <ShoppingCart />, path: '/place-order',     roles: ['superadmin','admin'] },
+  { text: 'Announcements',  icon: <Campaign />,     path: '/announcements',   roles: ['superadmin', 'admin'] },
   { text: 'FAQ',            icon: <HelpOutline />,  path: '/faq',             roles: ['superadmin', 'admin'] },
   { text: 'Privacy Policy', icon: <Policy />,       path: '/privacy-policy',  roles: ['superadmin', 'admin'] },
 ];
@@ -216,6 +218,7 @@ const Layout = () => {
                 <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 700, fontSize: 17 }}>
                   {currentTitle}
                 </Typography>
+                <NotificationBell />
                 <Avatar
                   sx={{
                     width: 34, height: 34,

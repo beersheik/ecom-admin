@@ -8,6 +8,33 @@ import { Add, Remove, ShoppingCart, Logout } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import api, { userApi } from '../api';
 
+// Mirrors the server's "N for ₹X" pricing (ecom/src/pricing.js): products with the same
+// price and offer are pooled. Returns { [productId]: total } for the given cart items.
+const priceCart = (items) => {
+  const totals = {};
+  const groups = new Map();
+  items.forEach(({ product, qty }) => {
+    totals[product._id] = Math.round(product.price * 100) * qty;
+    if (product.offerQty >= 2 && product.offerPrice > 0) {
+      const key = `${product.price}|${product.offerQty}|${product.offerPrice}`;
+      groups.set(key, [...(groups.get(key) || []), { product, qty }]);
+    }
+  });
+  for (const lines of groups.values()) {
+    const { price, offerQty, offerPrice } = lines[0].product;
+    const count = lines.reduce((sum, l) => sum + l.qty, 0);
+    const saving = Math.floor(count / offerQty) * (Math.round(price * 100) * offerQty - Math.round(offerPrice * 100));
+    let left = saving;
+    lines.forEach(({ product, qty }, n) => {
+      const share = n === lines.length - 1 ? left : Math.round((saving * qty) / count);
+      totals[product._id] -= share;
+      left -= share;
+    });
+  }
+  Object.keys(totals).forEach(id => { totals[id] /= 100; });
+  return totals;
+};
+
 function loadRazorpayScript() {
   return new Promise((resolve) => {
     if (document.getElementById('razorpay-sdk')) return resolve(true);
@@ -83,7 +110,8 @@ const PlaceOrder = () => {
   };
 
   const cartItems = Object.values(cart);
-  const total = cartItems.reduce((sum, { product, qty }) => sum + product.price * qty, 0);
+  const lineTotals = priceCart(cartItems);
+  const total = Object.values(lineTotals).reduce((sum, t) => sum + t, 0);
 
   const handlePay = async () => {
     if (!cartItems.length) return enqueueSnackbar('Cart is empty', { variant: 'warning' });
@@ -244,7 +272,7 @@ const PlaceOrder = () => {
                     <TableRow key={product._id}>
                       <TableCell>{product.name}</TableCell>
                       <TableCell align="center">× {qty}</TableCell>
-                      <TableCell align="right">₹{product.price * qty}</TableCell>
+                      <TableCell align="right">₹{lineTotals[product._id]}</TableCell>
                     </TableRow>
                   ))}
                   <TableRow>

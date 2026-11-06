@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box, Paper, Typography, Divider, Button, CircularProgress, Fade,
-  Table, TableHead, TableRow, TableCell, TableBody, Chip, IconButton,
+  Chip, IconButton,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
   MenuItem, Select, InputLabel, FormControl
 } from '@mui/material';
 import { Add, Delete } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import api from '../api';
+import ResponsiveTable from '../components/ResponsiveTable';
 
 const ROLE_COLOR = { superadmin: 'error', admin: 'primary' };
 
@@ -77,7 +78,7 @@ const Admins = () => {
     <Box sx={{ mt: 2 }}>
       <Fade in timeout={600}>
         <Paper elevation={0} sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}>
-          <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
             <Typography variant="h5">Admin Accounts</Typography>
             <Button variant="contained" startIcon={<Add />} onClick={() => setOpen(true)} sx={{ fontWeight: 600 }}>
               Add Admin
@@ -87,42 +88,29 @@ const Admins = () => {
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
           ) : (
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={{ '& th': { fontWeight: 700, color: 'text.secondary', fontSize: 12, textTransform: 'uppercase' } }}>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Role</TableCell>
-                  <TableCell>Business</TableCell>
-                  <TableCell>Created</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {admins.map(a => (
-                  <TableRow key={a._id} hover>
-                    <TableCell sx={{ fontWeight: 500 }}>{a.name || '—'}</TableCell>
-                    <TableCell>{a.email}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={a.role === 'superadmin' ? 'Super Admin' : 'Admin'}
-                        color={ROLE_COLOR[a.role] || 'default'}
-                        size="small" sx={{ fontWeight: 600, fontSize: 11 }}
-                      />
-                    </TableCell>
-                    <TableCell>{a.business?.name || '—'}</TableCell>
-                    <TableCell sx={{ color: 'text.secondary', fontSize: 12 }}>
-                      {new Date(a.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton size="small" color="error" onClick={() => setDeleteTarget(a)}>
-                        <Delete fontSize="small" />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <ResponsiveTable
+              cardsBelow="lg"
+              rows={admins}
+              headSx={{ '& th': { fontWeight: 700, color: 'text.secondary', fontSize: 12, textTransform: 'uppercase' } }}
+              columns={[
+                { label: 'Name', primary: true, render: a => a.name || '—', cellSx: { fontWeight: 500 } },
+                { label: 'Email', render: a => a.email },
+                { label: 'Role', render: a => (
+                  <Chip
+                    label={a.role === 'superadmin' ? 'Super Admin' : 'Admin'}
+                    color={ROLE_COLOR[a.role] || 'default'}
+                    size="small" sx={{ fontWeight: 600, fontSize: 11 }}
+                  />
+                ) },
+                { label: 'Business', render: a => a.business?.name || '—' },
+                { label: 'Created', render: a => new Date(a.createdAt).toLocaleDateString(), cellSx: { color: 'text.secondary', fontSize: 12 } }
+              ]}
+              actions={a => (
+                <IconButton size="small" color="error" onClick={() => setDeleteTarget(a)} aria-label={`Delete ${a.email}`}>
+                  <Delete fontSize="small" />
+                </IconButton>
+              )}
+            />
           )}
         </Paper>
       </Fade>

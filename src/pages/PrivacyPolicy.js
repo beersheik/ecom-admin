@@ -78,13 +78,13 @@ const PrivacyPolicy = () => {
                 </Typography>
               )}
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
               {superAdmin && businesses.length > 0 && (
                 <TextField
                   select size="small" label="Business"
                   value={selectedBusiness}
                   onChange={e => setSelectedBusiness(e.target.value)}
-                  sx={{ minWidth: 180 }}
+                  sx={{ minWidth: 180, flex: { xs: 1, sm: 'none' } }}
                 >
                   {businesses.map(b => (
                     <MenuItem key={b._id} value={b._id}>{b.name}</MenuItem>

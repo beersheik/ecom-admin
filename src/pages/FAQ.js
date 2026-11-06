@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box, Paper, Typography, Divider, Button, CircularProgress, Fade,
-  Table, TableHead, TableRow, TableCell, TableBody,
   Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, IconButton, MenuItem
 } from '@mui/material';
@@ -9,6 +8,7 @@ import { Edit, Delete, Add } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import api from '../api';
 import { isSuperAdmin, getBusiness } from '../auth';
+import ResponsiveTable from '../components/ResponsiveTable';
 
 const emptyForm = { question: '', answer: '', order: '' };
 
@@ -102,13 +102,13 @@ const FAQ = () => {
                 <Typography variant="caption" color="text.secondary">{selectedBusinessName}</Typography>
               )}
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
               {superAdmin && businesses.length > 0 && (
                 <TextField
                   select size="small" label="Business"
                   value={selectedBusiness}
                   onChange={e => setSelectedBusiness(e.target.value)}
-                  sx={{ minWidth: 180 }}
+                  sx={{ minWidth: 180, flex: { xs: 1, sm: 'none' } }}
                 >
                   {businesses.map(b => (
                     <MenuItem key={b._id} value={b._id}>{b.name}</MenuItem>
@@ -129,29 +129,20 @@ const FAQ = () => {
           ) : faqs.length === 0 ? (
             <Typography sx={{ p: 3, color: 'text.secondary' }}>No FAQs yet. Click "Add FAQ" to get started.</Typography>
           ) : (
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>#</TableCell>
-                  <TableCell>Question</TableCell>
-                  <TableCell>Answer</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {faqs.map((faq, i) => (
-                  <TableRow key={faq._id} hover>
-                    <TableCell>{i + 1}</TableCell>
-                    <TableCell sx={{ maxWidth: 280, fontWeight: 500 }}>{faq.question}</TableCell>
-                    <TableCell sx={{ maxWidth: 360, color: 'text.secondary', whiteSpace: 'pre-wrap' }}>{faq.answer}</TableCell>
-                    <TableCell align="right">
-                      <IconButton size="small" color="primary" onClick={() => openEdit(faq)}><Edit fontSize="small" /></IconButton>
-                      <IconButton size="small" color="error" onClick={() => setDeleteTarget(faq)}><Delete fontSize="small" /></IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <ResponsiveTable
+              rows={faqs}
+              columns={[
+                { label: '#', hideOnMobile: true, render: (faq, i) => i + 1 },
+                { label: 'Question', primary: true, render: faq => faq.question, cellSx: { maxWidth: 280, fontWeight: 500 } },
+                { label: 'Answer', render: faq => <Box sx={{ whiteSpace: 'pre-wrap', textAlign: 'left' }}>{faq.answer}</Box>, cellSx: { maxWidth: 360, color: 'text.secondary' } }
+              ]}
+              actions={faq => (
+                <>
+                  <IconButton size="small" color="primary" onClick={() => openEdit(faq)} aria-label="Edit FAQ"><Edit fontSize="small" /></IconButton>
+                  <IconButton size="small" color="error" onClick={() => setDeleteTarget(faq)} aria-label="Delete FAQ"><Delete fontSize="small" /></IconButton>
+                </>
+              )}
+            />
           )}
         </Paper>
       </Fade>

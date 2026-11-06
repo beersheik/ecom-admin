@@ -17,6 +17,7 @@ import Orders from './pages/Orders';
 import FAQ from './pages/FAQ';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Admins from './pages/Admins';
+import Announcements from './pages/Announcements';
 
 const theme = createTheme();
 
@@ -38,6 +39,7 @@ function App() {
             <Route path="faq" element={<FAQ />} />
             <Route path="privacy-policy" element={<PrivacyPolicy />} />
             <Route path="admins" element={<Admins />} />
+            <Route path="announcements" element={<Announcements />} />
             <Route index element={<Navigate to="dashboard" replace />} />
             </Route>
         </Routes>

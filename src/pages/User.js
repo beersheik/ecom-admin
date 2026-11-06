@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useSnackbar } from 'notistack';
-import { useTheme, useMediaQuery, Paper, Box, Fade, Typography, CircularProgress, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
+import { useTheme, useMediaQuery, Paper, Box, Fade, Typography, CircularProgress, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
 import { Edit, Delete } from '@mui/icons-material';
 import api from '../api';
 import { isSuperAdmin, getBusiness } from '../auth';
+import ResponsiveTable from '../components/ResponsiveTable';
 
 const User = () => {
   const superAdmin = isSuperAdmin();
@@ -104,7 +105,7 @@ const User = () => {
     <Box sx={{ mt: isMobile ? 2 : 4 }}>
       <Fade in timeout={600}>
         <Paper elevation={isMobile ? 0 : 4} sx={{ borderRadius: 2, bgcolor: 'background.paper', boxShadow: isMobile ? 0 : 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', p: isMobile ? 1 : 2, justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', p: isMobile ? 1.5 : 2, justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
             <Typography variant={isMobile ? 'h6' : 'h5'} sx={{ flexGrow: 1 }} gutterBottom>
               Users
             </Typography>
@@ -122,33 +123,20 @@ const User = () => {
               <Typography variant="body1">No users found.</Typography>
             </Box>
           ) : (
-            <TableContainer component={Paper} sx={{ boxShadow: 0, borderRadius: 1, transition: 'box-shadow 0.3s' }}>
-              <Table size={'small'}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Email</TableCell>
-                    <TableCell>Role</TableCell>
-                    <TableCell align="right">Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user._id} hover sx={{ transition: 'background 0.2s', '&:hover': { bgcolor: 'action.hover' } }}>
-                      <TableCell>{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>{user.role}</TableCell>
-                      <TableCell align="right">
-                        <Button size="small" color="primary" onClick={() => handleEditOpen(user)} startIcon={<Edit />} sx={{ mr: 1 }}>
-                          Edit
-                        </Button>
-                        <Button size="small" color="error" onClick={() => handleDeleteOpen(user)} startIcon={<Delete />}>Delete</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <ResponsiveTable
+              rows={users}
+              columns={[
+                { label: 'Name', primary: true, render: u => u.name },
+                { label: 'Email', render: u => u.email },
+                { label: 'Role', render: u => u.role || '—' }
+              ]}
+              actions={user => (
+                <>
+                  <Button size="small" color="primary" onClick={() => handleEditOpen(user)} startIcon={<Edit />}>Edit</Button>
+                  <Button size="small" color="error" onClick={() => handleDeleteOpen(user)} startIcon={<Delete />}>Delete</Button>
+                </>
+              )}
+            />
           )}
           {/* Add Dialog */}
           <Dialog open={open} onClose={handleClose} fullScreen={isMobile} TransitionComponent={Fade} transitionDuration={400}>

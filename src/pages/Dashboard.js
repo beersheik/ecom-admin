@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box, Grid, Paper, Typography, CircularProgress,
-  Table, TableHead, TableRow, TableCell, TableBody, Chip, Fade, Divider
+  Chip, Fade, Divider
 } from '@mui/material';
 import {
   ShoppingBag, People, Inventory2, CurrencyRupee
 } from '@mui/icons-material';
 import api from '../api';
+import ResponsiveTable from '../components/ResponsiveTable';
 
-const STATUS_COLOR = { paid: 'success', pending: 'warning', failed: 'error', refunded: 'default' };
+const STATUS_COLOR = { paid: 'success', pending: 'warning', verifying: 'info', failed: 'error', refunded: 'default' };
 
 function StatCard({ label, value, icon, gradient, loading }) {
   return (
@@ -73,7 +74,7 @@ const Dashboard = () => {
             { label: 'Products',       value: stats.products,           icon: <Inventory2 />,     gradient: 'linear-gradient(135deg,#f59e0b,#d97706)' },
             { label: 'Users',          value: stats.users,              icon: <People />,         gradient: 'linear-gradient(135deg,#3b82f6,#2563eb)' },
           ].map(card => (
-            <Grid item xs={12} sm={6} lg={3} key={card.label}>
+            <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={card.label}>
               <StatCard {...card} loading={loading} />
             </Grid>
           ))}
@@ -81,7 +82,7 @@ const Dashboard = () => {
 
         {/* Recent Orders */}
         <Paper elevation={0} sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}>
-          <Box sx={{ px: 3, py: 2 }}>
+          <Box sx={{ px: { xs: 2, sm: 3 }, py: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>Recent Orders</Typography>
             <Typography variant="body2" color="text.secondary">Latest 6 orders across all businesses</Typography>
           </Box>
@@ -93,41 +94,25 @@ const Dashboard = () => {
           ) : recentOrders.length === 0 ? (
             <Typography sx={{ p: 3, color: 'text.secondary' }}>No orders yet.</Typography>
           ) : (
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={{ '& th': { fontWeight: 700, color: 'text.secondary', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 } }}>
-                  <TableCell>Order ID</TableCell>
-                  <TableCell>Business</TableCell>
-                  <TableCell>Customer</TableCell>
-                  <TableCell align="right">Amount</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Date</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {recentOrders.map(order => (
-                  <TableRow key={order._id} hover>
-                    <TableCell sx={{ fontFamily: 'monospace', fontSize: 11, color: 'text.secondary' }}>
-                      {order._id?.slice(-8)}
-                    </TableCell>
-                    <TableCell>{order.business?.name || '—'}</TableCell>
-                    <TableCell>{order.user?.name || order.user?.email || '—'}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600 }}>₹{order.amount}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={order.status}
-                        color={STATUS_COLOR[order.status] || 'default'}
-                        size="small"
-                        sx={{ textTransform: 'capitalize', fontWeight: 600, fontSize: 11 }}
-                      />
-                    </TableCell>
-                    <TableCell sx={{ color: 'text.secondary', fontSize: 12 }}>
-                      {new Date(order.createdAt).toLocaleDateString()}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <ResponsiveTable
+              rows={recentOrders}
+              headSx={{ '& th': { fontWeight: 700, color: 'text.secondary', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 } }}
+              columns={[
+                { label: 'Order ID', render: o => o._id?.slice(-8), cellSx: { fontFamily: 'monospace', fontSize: 11, color: 'text.secondary' } },
+                { label: 'Business', render: o => o.business?.name || '—' },
+                { label: 'Customer', primary: true, render: o => o.user?.name || o.user?.email || '—' },
+                { label: 'Amount', align: 'right', render: o => `₹${o.amount}`, cellSx: { fontWeight: 600 } },
+                { label: 'Status', render: o => (
+                  <Chip
+                    label={o.status}
+                    color={STATUS_COLOR[o.status] || 'default'}
+                    size="small"
+                    sx={{ textTransform: 'capitalize', fontWeight: 600, fontSize: 11 }}
+                  />
+                ) },
+                { label: 'Date', render: o => new Date(o.createdAt).toLocaleDateString(), cellSx: { color: 'text.secondary', fontSize: 12 } }
+              ]}
+            />
           )}
         </Paper>
       </Box>

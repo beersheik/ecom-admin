@@ -1,11 +1,24 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useSnackbar } from 'notistack';
-import { useTheme, useMediaQuery, Paper, Box, Fade, Typography, CircularProgress, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Chip, Avatar, InputAdornment, Card } from '@mui/material';
+import { useTheme, useMediaQuery, Paper, Box, Fade, Typography, CircularProgress, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Chip, Avatar, InputAdornment, Card, IconButton, Tooltip } from '@mui/material';
 import { Edit, Delete, Search, InventoryOutlined, TrendingDownOutlined, WarningAmber } from '@mui/icons-material';
 import api from '../api';
 import { isSuperAdmin, getBusiness } from '../auth';
+import ResponsiveTable from '../components/ResponsiveTable';
+import ProductImages from '../components/ProductImages';
 
 const BASE = process.env.REACT_APP_API_HOST;
+
+// Shows what the offer means, e.g. "3 × ₹299 = ₹897 → ₹600 (save ₹297)"; empty price = no offer.
+const offerHint = ({ price, offerQty, offerPrice }) => {
+  if (!offerPrice) return 'Leave empty for no offer';
+  const full = Number(price) * Number(offerQty);
+  if (!full) return '';
+  if (Number(offerPrice) >= full) return `Must be less than ₹${full}`;
+  return `${offerQty} × ₹${price} = ₹${full} → ₹${offerPrice} (save ₹${Math.round((full - offerPrice) * 100) / 100})`;
+};
+
+const hasNewImages = (f) => (f.profileImage instanceof File || (f.imageList || []).some(i => i instanceof File));
 
 const Products = () => {
   const superAdmin = isSuperAdmin();
@@ -14,13 +27,16 @@ const Products = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [products, setProducts] = useState([]);
   const [businesses, setBusinesses] = useState([]);
+  // Offers only show for businesses where a super admin has turned them on.
+  const offersOn = (businessId) => Boolean(businesses.find(b => b._id === businessId)?.offersEnabled);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', sku: '', brand: '', description: '', price: '', mrp: '', unit: 'piece', weight: '', stock: '', minOrderQty: 1, tags: '', hsnCode: '', gstRate: 0, warranty: '', category: '', business: myBusiness, status: 'active', profileImage: null, imageList: [] });
-  const [editForm, setEditForm] = useState({ name: '', sku: '', brand: '', description: '', price: '', mrp: '', unit: 'piece', weight: '', stock: '', minOrderQty: 1, tags: '', hsnCode: '', gstRate: 0, warranty: '', category: '', business: myBusiness, status: 'active' });
+  const [form, setForm] = useState({ name: '', sku: '', brand: '', description: '', price: '', mrp: '', offerQty: 3, offerPrice: '', unit: 'piece', weight: '', stock: '', minOrderQty: 1, tags: '', hsnCode: '', gstRate: 0, warranty: '', category: '', business: myBusiness, status: 'active', profileImage: null, imageList: [] });
+  const [editForm, setEditForm] = useState({ name: '', sku: '', brand: '', description: '', price: '', mrp: '', offerQty: 3, offerPrice: '', unit: 'piece', weight: '', stock: '', minOrderQty: 1, tags: '', hsnCode: '', gstRate: 0, warranty: '', category: '', business: myBusiness, status: 'active' });
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -90,24 +106,6 @@ const Products = () => {
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
 
-  const handleFileChange = (e, mode) => {
-    if (mode === "edit") {
-      setEditForm({ ...editForm, [e.target.name]: e.target.files[0] });
-    } else {
-      setForm({ ...form, [e.target.name]: e.target.files[0] });
-    }
-  };
-
-  const handleMultipleFileChange = (e, mode) => {
-    if (mode === "edit") {
-      setEditForm({ ...editForm, [e.target.name]: Array.from(e.target.files) });
-    } else {
-      setForm({ ...form, [e.target.name]: Array.from(e.target.files) });
-    }
-  };
-
-
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData();
@@ -117,6 +115,10 @@ const Products = () => {
     formData.append('description', form.description);
     formData.append('price', form.price);
     formData.append('mrp', form.mrp);
+    if (offersOn(form.business)) {
+      formData.append('offerQty', form.offerQty);
+      formData.append('offerPrice', form.offerPrice);
+    }
     formData.append('unit', form.unit);
     formData.append('weight', form.weight);
     formData.append('stock', form.stock);
@@ -133,14 +135,17 @@ const Products = () => {
       form.imageList.forEach((file) => formData.append('imageList', file));
     }
 
+    setSaving(true);
     try {
       await api.post('/api/products', formData);
-      setForm({ name: '', sku: '', brand: '', description: '', price: '', mrp: '', unit: 'piece', weight: '', stock: '', minOrderQty: 1, tags: '', hsnCode: '', gstRate: 0, warranty: '', category: '', business: myBusiness, status: 'active', profileImage: null, imageList: [] });
+      setForm({ name: '', sku: '', brand: '', description: '', price: '', mrp: '', offerQty: 3, offerPrice: '', unit: 'piece', weight: '', stock: '', minOrderQty: 1, tags: '', hsnCode: '', gstRate: 0, warranty: '', category: '', business: myBusiness, status: 'active', profileImage: null, imageList: [] });
       setOpen(false);
       fetchProducts();
       enqueueSnackbar('Product added successfully!', { variant: 'success' });
     } catch (err) {
       enqueueSnackbar(err.response?.data?.message || err.message, { variant: 'error' });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -153,6 +158,8 @@ const Products = () => {
       description: product.description, 
       price: product.price, 
       mrp: product.mrp || '', 
+      offerQty: product.offerQty || 3, 
+      offerPrice: product.offerPrice || '', 
       unit: product.unit || 'piece', 
       weight: product.weight || '', 
       stock: product.stock, 
@@ -187,6 +194,10 @@ const Products = () => {
     formData.append('description', editForm.description);
     formData.append('price', editForm.price);
     formData.append('mrp', editForm.mrp);
+    if (offersOn(editForm.business)) {
+      formData.append('offerQty', editForm.offerQty);
+      formData.append('offerPrice', editForm.offerPrice);
+    }
     formData.append('unit', editForm.unit);
     formData.append('weight', editForm.weight);
     formData.append('stock', editForm.stock);
@@ -198,16 +209,12 @@ const Products = () => {
     formData.append('category', editForm.category);
     formData.append('business', editForm.business);
     formData.append('status', editForm.status);
-    if (editForm.profileImage && editForm.profileImage instanceof File) {
-      formData.append('profileImage', editForm.profileImage);
-    }
-    if (editForm.imageList && editForm.imageList.length > 0) {
-      editForm.imageList.forEach((file) => {
-        if (file instanceof File) {
-          formData.append('imageList', file);
-        }
-      });
-    }
+    // New files are uploaded; saved images are sent back as paths so the server keeps them.
+    if (editForm.profileImage) formData.append('profileImage', editForm.profileImage);
+    (editForm.imageList || []).forEach((item) => {
+      formData.append(item instanceof File ? 'imageList' : 'existingImages', item);
+    });
+    setSaving(true);
     try {
       await api.put(`/api/products/${selectedProduct._id}`, formData);
       setEditOpen(false);
@@ -215,6 +222,8 @@ const Products = () => {
       enqueueSnackbar('Product updated successfully!', { variant: 'success' });
     } catch (err) {
       enqueueSnackbar(err.response?.data?.message || err.message, { variant: 'error' });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -253,15 +262,23 @@ const Products = () => {
 
   const getImageUrl = (imagePath) => {
     if (!imagePath) return '';
-    if (imagePath.startsWith('http')) return imagePath;
+    if (/^(https?:|data:|blob:)/.test(imagePath)) return imagePath;
     return `${BASE}/${imagePath}`;
   };
+
+  const ProductThumb = ({ product }) => (product.profileImage && !imageErrors[product._id] ? (
+    <Avatar variant="square" src={getImageUrl(product.profileImage)} onError={() => handleImageError(product._id)} sx={{ width: 40, height: 40, borderRadius: 0.5 }} />
+  ) : (
+    <Avatar variant="square" sx={{ width: 40, height: 40, borderRadius: 0.5, bgcolor: 'grey.300' }}>
+      <InventoryOutlined fontSize="small" />
+    </Avatar>
+  ));
 
   return (
     <Box sx={{ mt: isMobile ? 2 : 4 }}>
       <Fade in timeout={600}>
         <Paper elevation={isMobile ? 0 : 4} sx={{ borderRadius: 2, bgcolor: 'background.paper', boxShadow: isMobile ? 0 : 1 }}>
-          <Box sx={{ display: 'flex', alignProducts: 'center', p: isMobile ? 1 : 2, justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', p: isMobile ? 1.5 : 2, justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
             <Typography variant={isMobile ? 'h6' : 'h5'} sx={{ flexGrow: 1 }} gutterBottom>
               Products
             </Typography>
@@ -349,95 +366,55 @@ const Products = () => {
               <Typography variant="body1">No products match your filters.</Typography>
             </Box>
           ) : (
-            <TableContainer component={Paper} sx={{ boxShadow: 0, borderRadius: 1, transition: 'box-shadow 0.3s', overflowX: 'auto' }}>
-              <Table size={'small'}>
-                <TableHead sx={{ bgcolor: 'primary.main' }}>
-                  <TableRow>
-                    <TableCell sx={{ color: 'white', fontWeight: 600 }}>Image</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600 }}>Name</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600 }}>SKU</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600 }}>Brand</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600 }}>Category</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600 }} align="right">Price</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600 }} align="center">Discount</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600 }} align="center">Stock</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600 }} align="center">Status</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600 }} align="right">Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredProducts.map((product) => {
-                    const stockStatus = getStockStatus(product.stock);
-                    const discount = getDiscountPercentage(product.price, product.mrp);
-                    return (
-                      <TableRow key={product._id} hover sx={{ transition: 'background 0.2s', '&:hover': { bgcolor: 'action.hover' } }}>
-                        <TableCell>
-                          {product.profileImage && !imageErrors[product._id] ? (
-                            <Avatar 
-                              variant="square" 
-                              src={getImageUrl(product.profileImage)} 
-                              onError={() => handleImageError(product._id)}
-                              sx={{ width: 40, height: 40, borderRadius: 0.5 }} 
-                            />
-                          ) : (
-                            <Avatar variant="square" sx={{ width: 40, height: 40, borderRadius: 0.5, bgcolor: 'grey.300' }}>
-                              <InventoryOutlined fontSize="small" />
-                            </Avatar>
-                          )}
-                        </TableCell>
-                        <TableCell sx={{ fontWeight: 500 }}>{product.name}</TableCell>
-                        <TableCell><Chip label={product.sku || '-'} size="small" variant="outlined" /></TableCell>
-                        <TableCell>{product.brand || '-'}</TableCell>
-                        <TableCell>{product.category?.name || '-'}</TableCell>
-                        <TableCell align="right">
-                          <Box>
-                            <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>₹{product.price}</Typography>
-                            {product.mrp && product.mrp > product.price && (
-                              <Typography variant="caption" sx={{ color: 'text.secondary', textDecoration: 'line-through' }}>₹{product.mrp}</Typography>
-                            )}
-                          </Box>
-                        </TableCell>
-                        <TableCell align="center">
-                          {discount > 0 ? (
-                            <Chip label={`${discount}% off`} size="small" variant="filled" color="error" icon={<TrendingDownOutlined />} />
-                          ) : (
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>-</Typography>
-                          )}
-                        </TableCell>
-                        <TableCell align="center">
-                          <Chip 
-                            label={`${product.stock} units`} 
-                            size="small" 
-                            variant="outlined"
-                            color={stockStatus.color}
-                            icon={stockStatus.icon}
-                          />
-                        </TableCell>
-                        <TableCell align="center">
-                          <Chip 
-                            label={product.status} 
-                            size="small" 
-                            color={product.status === 'active' ? 'success' : 'default'}
-                            variant="filled"
-                          />
-                        </TableCell>
-                        <TableCell align="right">
-                          <Button size="small" color="primary" onClick={() => handleEditOpen(product)} startIcon={<Edit />} sx={{ mr: 1 }}>
-                            Edit
-                          </Button>
-                          <Button size="small" color="error" onClick={() => handleDeleteOpen(product)} startIcon={<Delete />}>
-                            Delete
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <ResponsiveTable
+              cardsBelow={1300} // 9 columns need the full width next to the sidebar
+              rows={filteredProducts}
+              headSx={{ bgcolor: 'primary.main', '& th': { color: 'white', fontWeight: 600 } }}
+              columns={[
+                { label: 'Product', primary: true, cellSx: { fontWeight: 500 }, render: p => (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <ProductThumb product={p} />
+                    <span>{p.name}</span>
+                  </Box>
+                ) },
+                { label: 'SKU', render: p => <Chip label={p.sku || '-'} size="small" variant="outlined" /> },
+                { label: 'Brand', render: p => p.brand || '-' },
+                { label: 'Category', render: p => p.category?.name || '-' },
+                { label: 'Price', align: 'right', render: p => (
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>₹{p.price}</Typography>
+                    {p.mrp && p.mrp > p.price && (
+                      <Typography variant="caption" sx={{ color: 'text.secondary', textDecoration: 'line-through' }}>₹{p.mrp}</Typography>
+                    )}
+                    {p.offerPrice > 0 && p.offerQty >= 2 && (
+                      <Chip label={`${p.offerQty} for ₹${p.offerPrice}`} size="small" color="success" variant="outlined" sx={{ mt: 0.5, display: 'flex', ml: 'auto', width: 'fit-content' }} />
+                    )}
+                  </Box>
+                ) },
+                { label: 'Discount', align: 'center', render: p => {
+                  const discount = getDiscountPercentage(p.price, p.mrp);
+                  return discount > 0
+                    ? <Chip label={`${discount}% off`} size="small" variant="filled" color="error" icon={<TrendingDownOutlined />} />
+                    : <Typography variant="caption" sx={{ color: 'text.secondary' }}>-</Typography>;
+                } },
+                { label: 'Stock', align: 'center', render: p => {
+                  const stockStatus = getStockStatus(p.stock);
+                  return <Chip label={`${p.stock} units`} size="small" variant="outlined" color={stockStatus.color} icon={stockStatus.icon} />;
+                } },
+                { label: 'Status', align: 'center', render: p => (
+                  <Chip label={p.status} size="small" color={p.status === 'active' ? 'success' : 'default'} variant="filled" />
+                ) }
+              ]}
+              actions={product => (
+                <Box sx={{ display: 'inline-flex', whiteSpace: 'nowrap' }}>
+                  <Tooltip title="Edit"><IconButton color="primary" onClick={() => handleEditOpen(product)} aria-label={`Edit ${product.name}`}><Edit fontSize="small" /></IconButton></Tooltip>
+                  <Tooltip title="Delete"><IconButton color="error" onClick={() => handleDeleteOpen(product)} aria-label={`Delete ${product.name}`}><Delete fontSize="small" /></IconButton></Tooltip>
+                </Box>
+              )}
+            />
           )}
           {/* Add Dialog */}
-          <Dialog open={open} onClose={handleClose} fullScreen={isMobile} TransitionComponent={Fade} transitionDuration={400} maxWidth="sm" fullWidth={!isMobile}>
+          <Dialog open={open} onClose={() => !saving && handleClose()} fullScreen={isMobile} TransitionComponent={Fade} transitionDuration={400} maxWidth="sm" fullWidth={!isMobile}>
             <DialogTitle sx={{ fontWeight: 700, bgcolor: 'primary.main', color: 'white' }}>Add Product</DialogTitle>
             <DialogContent sx={{ pt: 3, maxHeight: 'calc(100vh - 120px)', overflow: 'auto', bgcolor: 'background.default' }}>
               <form onSubmit={handleSubmit} id="product-form">
@@ -446,28 +423,12 @@ const Products = () => {
                   <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
                     <InventoryOutlined /> Product Images
                   </Typography>
-                  <Box sx={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 2 }}>
-                    <TextField
-                      margin="dense"
-                      label="Profile Image"
-                      type="file"
-                      name="profileImage"
-                      onChange={(e) => handleFileChange(e, "add")}
-                      fullWidth
-                      InputLabelProps={{ shrink: true }}
-                      slotProps={{ input: { accept: 'image/*' } }}
-                    />
-                    <TextField
-                      margin="dense"
-                      label="Image List"
-                      type="file"
-                      name="imageList"
-                      onChange={(e) => handleMultipleFileChange(e, "add")}
-                      inputProps={{ multiple: true, accept: 'image/*' }}
-                      fullWidth
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  </Box>
+                  <ProductImages
+                    value={{ profileImage: form.profileImage, imageList: form.imageList || [] }}
+                    onChange={images => setForm(f => ({ ...f, ...images }))}
+                    toUrl={getImageUrl}
+                    disabled={saving}
+                  />
                 </Card>
 
                 {/* Business & Category Section */}
@@ -526,6 +487,17 @@ const Products = () => {
                     <TextField margin="dense" label="Price (₹)" name="price" value={form.price} onChange={handleChange} fullWidth required type="number" inputProps={{ step: '0.01', min: '0' }} />
                     <TextField margin="dense" label="MRP (₹)" name="mrp" value={form.mrp} onChange={handleChange} fullWidth type="number" inputProps={{ step: '0.01', min: '0' }} />
                   </Box>
+                  {offersOn(form.business) && (
+                    <>
+                      <Typography variant="subtitle2" sx={{ mt: 2, fontWeight: 600 }}>Multi-buy offer (optional)</Typography>
+                      <Typography variant="caption" color="text.secondary">Products with the same price and the same offer combine, e.g. any 3 ₹299 items for ₹600.</Typography>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 2 }}>
+                        <TextField margin="dense" label="Buy quantity" name="offerQty" value={form.offerQty} onChange={handleChange} fullWidth type="number" inputProps={{ step: '1', min: '2' }} required={Boolean(form.offerPrice)} />
+                        <TextField margin="dense" label="Offer price (₹)" name="offerPrice" value={form.offerPrice} onChange={handleChange} fullWidth type="number" inputProps={{ step: '0.01', min: '0' }}
+                          helperText={offerHint(form)} />
+                      </Box>
+                    </>
+                  )}
                 </Card>
 
                 {/* Inventory Section */}
@@ -572,12 +544,14 @@ const Products = () => {
               </form>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2, gap: 1, bgcolor: 'background.default' }}>
-              <Button onClick={handleClose} sx={{ fontWeight: 600 }}>Cancel</Button>
-              <Button type="submit" form="product-form" variant="contained" sx={{ fontWeight: 600 }}>Save Product</Button>
+              <Button onClick={handleClose} disabled={saving} sx={{ fontWeight: 600 }}>Cancel</Button>
+              <Button type="submit" form="product-form" variant="contained" disabled={saving} startIcon={saving ? <CircularProgress size={18} color="inherit" /> : null} sx={{ fontWeight: 600 }}>
+                {saving ? (hasNewImages(form) ? 'Uploading images...' : 'Saving...') : 'Save Product'}
+              </Button>
             </DialogActions>
           </Dialog>
           {/* Edit Dialog */}
-          <Dialog open={editOpen} onClose={handleEditClose} fullScreen={isMobile} TransitionComponent={Fade} transitionDuration={400} maxWidth="sm" fullWidth={!isMobile}>
+          <Dialog open={editOpen} onClose={() => !saving && handleEditClose()} fullScreen={isMobile} TransitionComponent={Fade} transitionDuration={400} maxWidth="sm" fullWidth={!isMobile}>
             <DialogTitle sx={{ fontWeight: 700, bgcolor: 'primary.main', color: 'white' }}>Edit Product</DialogTitle>
             <DialogContent sx={{ pt: 3, maxHeight: 'calc(100vh - 120px)', overflow: 'auto', bgcolor: 'background.default' }}>
               <form onSubmit={handleEditSubmit} id="edit-product-form">
@@ -586,28 +560,12 @@ const Products = () => {
                   <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
                     <InventoryOutlined /> Product Images
                   </Typography>
-                  <Box sx={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 2 }}>
-                    <TextField
-                      margin="dense"
-                      label="Profile Image"
-                      type="file"
-                      name="profileImage"
-                      onChange={(e) => handleFileChange(e, "edit")}
-                      fullWidth
-                      InputLabelProps={{ shrink: true }}
-                      slotProps={{ input: { accept: 'image/*' } }}
-                    />
-                    <TextField
-                      margin="dense"
-                      label="Image List"
-                      type="file"
-                      name="imageList"
-                      onChange={(e) => handleMultipleFileChange(e, "edit")}
-                      inputProps={{ multiple: true, accept: 'image/*' }}
-                      fullWidth
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  </Box>
+                  <ProductImages
+                    value={{ profileImage: editForm.profileImage, imageList: editForm.imageList || [] }}
+                    onChange={images => setEditForm(f => ({ ...f, ...images }))}
+                    toUrl={getImageUrl}
+                    disabled={saving}
+                  />
                 </Card>
 
                 {/* Business & Category Section */}
@@ -666,6 +624,17 @@ const Products = () => {
                     <TextField margin="dense" label="Price (₹)" name="price" value={editForm.price} onChange={handleEditChange} fullWidth required type="number" inputProps={{ step: '0.01', min: '0' }} />
                     <TextField margin="dense" label="MRP (₹)" name="mrp" value={editForm.mrp} onChange={handleEditChange} fullWidth type="number" inputProps={{ step: '0.01', min: '0' }} />
                   </Box>
+                  {offersOn(editForm.business) && (
+                    <>
+                      <Typography variant="subtitle2" sx={{ mt: 2, fontWeight: 600 }}>Multi-buy offer (optional)</Typography>
+                      <Typography variant="caption" color="text.secondary">Products with the same price and the same offer combine, e.g. any 3 ₹299 items for ₹600.</Typography>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 2 }}>
+                        <TextField margin="dense" label="Buy quantity" name="offerQty" value={editForm.offerQty} onChange={handleEditChange} fullWidth type="number" inputProps={{ step: '1', min: '2' }} required={Boolean(editForm.offerPrice)} />
+                        <TextField margin="dense" label="Offer price (₹)" name="offerPrice" value={editForm.offerPrice} onChange={handleEditChange} fullWidth type="number" inputProps={{ step: '0.01', min: '0' }}
+                          helperText={offerHint(editForm)} />
+                      </Box>
+                    </>
+                  )}
                 </Card>
 
                 {/* Inventory Section */}
@@ -712,8 +681,10 @@ const Products = () => {
               </form>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2, gap: 1, bgcolor: 'background.default' }}>
-              <Button onClick={handleEditClose} sx={{ fontWeight: 600 }}>Cancel</Button>
-              <Button type="submit" form="edit-product-form" variant="contained" sx={{ fontWeight: 600 }}>Update Product</Button>
+              <Button onClick={handleEditClose} disabled={saving} sx={{ fontWeight: 600 }}>Cancel</Button>
+              <Button type="submit" form="edit-product-form" variant="contained" disabled={saving} startIcon={saving ? <CircularProgress size={18} color="inherit" /> : null} sx={{ fontWeight: 600 }}>
+                {saving ? (hasNewImages(editForm) ? 'Uploading images...' : 'Updating...') : 'Update Product'}
+              </Button>
             </DialogActions>
           </Dialog>
           {/* Delete Confirmation Dialog */}

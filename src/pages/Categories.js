@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useSnackbar } from 'notistack';
-import { useTheme, useMediaQuery, Paper, Box, Fade, Typography, CircularProgress, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
+import { useTheme, useMediaQuery, Paper, Box, Fade, Typography, CircularProgress, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
 import { Edit, Delete } from '@mui/icons-material';
 import api from '../api';
 import { isSuperAdmin, getBusiness } from '../auth';
+import ResponsiveTable from '../components/ResponsiveTable';
 
 const Categories = () => {
     const superAdmin = isSuperAdmin();
@@ -103,7 +104,7 @@ const Categories = () => {
         <Box sx={{ mt: isMobile ? 2 : 4 }}>
             <Fade in timeout={600}>
                 <Paper elevation={isMobile ? 0 : 4} sx={{ borderRadius: 2, bgcolor: 'background.paper', boxShadow: isMobile ? 0 : 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', p: isMobile ? 1 : 2, justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', p: isMobile ? 1.5 : 2, justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
                         <Typography variant={isMobile ? 'h6' : 'h5'} sx={{ flexGrow: 1 }} gutterBottom>
                             Categories
                         </Typography>
@@ -121,31 +122,19 @@ const Categories = () => {
                             <Typography variant="body1">No categories found.</Typography>
                         </Box>
                     ) : (
-                         <TableContainer component={Paper} sx={{ boxShadow:  0 , borderRadius: 1, transition: 'box-shadow 0.3s' }}>
-                                     <Table size={'small'}>
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell>Name</TableCell>
-                                        <TableCell>Description</TableCell>
-                                        <TableCell align="right">Actions</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {categories.map((cat) => (
-                                        <TableRow key={cat._id} hover sx={{ transition: 'background 0.2s', '&:hover': { bgcolor: 'action.hover' } }}>
-                                            <TableCell>{cat.name}</TableCell>
-                                            <TableCell>{cat.description}</TableCell>
-                                            <TableCell align="right">
-                                                <Button size="small" color="primary" onClick={() => handleEditOpen(cat)} startIcon={<Edit />} sx={{ mr: 1 }}>
-                                                    Edit
-                                                </Button>
-                                                <Button size="small" color="error" onClick={() => handleDeleteOpen(cat)} startIcon={<Delete />}>Delete</Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
+                         <ResponsiveTable
+                           rows={categories}
+                           columns={[
+                             { label: 'Name', primary: true, render: c => c.name },
+                             { label: 'Description', render: c => c.description || '—' }
+                           ]}
+                           actions={cat => (
+                             <>
+                               <Button size="small" color="primary" onClick={() => handleEditOpen(cat)} startIcon={<Edit />}>Edit</Button>
+                               <Button size="small" color="error" onClick={() => handleDeleteOpen(cat)} startIcon={<Delete />}>Delete</Button>
+                             </>
+                           )}
+                         />
                     )}
                     {/* Add Dialog */}
                     <Dialog open={open} onClose={handleClose} fullScreen={isMobile} TransitionComponent={Fade} transitionDuration={400}>
