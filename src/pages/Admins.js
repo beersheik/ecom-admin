@@ -9,6 +9,7 @@ import { Add, Delete } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import api from '../api';
 import ResponsiveTable from '../components/ResponsiveTable';
+import { cardSx } from '../theme';
 
 const ROLE_COLOR = { superadmin: 'error', admin: 'primary' };
 
@@ -75,9 +76,9 @@ const Admins = () => {
   };
 
   return (
-    <Box sx={{ mt: 2 }}>
+    <Box>
       <Fade in timeout={600}>
-        <Paper elevation={0} sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}>
+        <Paper elevation={0} sx={cardSx}>
           <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
             <Typography variant="h5">Admin Accounts</Typography>
             <Button variant="contained" startIcon={<Add />} onClick={() => setOpen(true)} sx={{ fontWeight: 600 }}>
@@ -91,7 +92,6 @@ const Admins = () => {
             <ResponsiveTable
               cardsBelow="lg"
               rows={admins}
-              headSx={{ '& th': { fontWeight: 700, color: 'text.secondary', fontSize: 12, textTransform: 'uppercase' } }}
               columns={[
                 { label: 'Name', primary: true, render: a => a.name || '—', cellSx: { fontWeight: 500 } },
                 { label: 'Email', render: a => a.email },

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Alert, Badge, Box, Button, Divider, IconButton, List, ListItemButton, Popover, Stack, Tooltip, Typography } from '@mui/material';
+import { Alert, Badge, Box, Button, Divider, IconButton, List, ListItem, ListItemButton, Popover, Stack, Tooltip, Typography } from '@mui/material';
 import { NotificationsNone, NotificationsActiveOutlined } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import api from '../api';
@@ -144,7 +144,8 @@ export default function NotificationBell() {
           ) : (
             <List disablePadding>
               {items.map(n => (
-                <ListItemButton key={n._id} onClick={() => open(n)} sx={{ alignItems: 'flex-start', gap: 1.25, py: 1.25, bgcolor: n.readAt ? 'transparent' : 'action.hover' }}>
+                <ListItem key={n._id} disablePadding>
+                <ListItemButton onClick={() => open(n)} sx={{ alignItems: 'flex-start', gap: 1.25, py: 1.25, bgcolor: n.readAt ? 'transparent' : 'action.hover' }}>
                   <Box aria-hidden sx={{ width: 8, height: 8, mt: 0.9, borderRadius: '50%', flexShrink: 0, bgcolor: n.readAt ? 'transparent' : 'primary.main' }} />
                   <Box sx={{ minWidth: 0 }}>
                     <Typography variant="body2" sx={{ fontWeight: n.readAt ? 500 : 700 }}>{n.title}</Typography>
@@ -154,6 +155,7 @@ export default function NotificationBell() {
                     </Typography>
                   </Box>
                 </ListItemButton>
+                </ListItem>
               ))}
             </List>
           )}

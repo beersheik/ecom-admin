@@ -6,6 +6,8 @@ import api from '../api';
 import { isSuperAdmin, getBusiness } from '../auth';
 import ResponsiveTable from '../components/ResponsiveTable';
 import ProductImages from '../components/ProductImages';
+import { cardSx } from '../theme';
+import { useSearchParams } from 'react-router-dom';
 
 const BASE = process.env.REACT_APP_API_HOST;
 
@@ -102,6 +104,15 @@ const Products = () => {
   }, [products, searchTerm, categoryFilter, statusFilter, brandFilter]);
 
   const handleOpen = () => setOpen(true);
+
+  // The dashboard's "Add product" links here with ?new=1 to open the form straight away.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   const handleClose = () => setOpen(false);
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -275,9 +286,9 @@ const Products = () => {
   ));
 
   return (
-    <Box sx={{ mt: isMobile ? 2 : 4 }}>
+    <Box>
       <Fade in timeout={600}>
-        <Paper elevation={isMobile ? 0 : 4} sx={{ borderRadius: 2, bgcolor: 'background.paper', boxShadow: isMobile ? 0 : 1 }}>
+        <Paper elevation={0} sx={cardSx}>
           <Box sx={{ display: 'flex', alignItems: 'center', p: isMobile ? 1.5 : 2, justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
             <Typography variant={isMobile ? 'h6' : 'h5'} sx={{ flexGrow: 1 }} gutterBottom>
               Products
@@ -369,7 +380,6 @@ const Products = () => {
             <ResponsiveTable
               cardsBelow={1300} // 9 columns need the full width next to the sidebar
               rows={filteredProducts}
-              headSx={{ bgcolor: 'primary.main', '& th': { color: 'white', fontWeight: 600 } }}
               columns={[
                 { label: 'Product', primary: true, cellSx: { fontWeight: 500 }, render: p => (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>

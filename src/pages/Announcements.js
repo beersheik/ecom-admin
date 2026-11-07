@@ -8,6 +8,7 @@ import { useSnackbar } from 'notistack';
 import api from '../api';
 import { isSuperAdmin, getBusiness } from '../auth';
 import ResponsiveTable from '../components/ResponsiveTable';
+import { cardSx } from '../theme';
 
 const EMPTY = { title: '', body: '', url: '/shop', email: false };
 
@@ -63,10 +64,10 @@ const Announcements = () => {
   const canSend = form.title.trim() && form.body.trim() && business;
 
   return (
-    <Box sx={{ mt: 2 }}>
+    <Box>
       <Fade in timeout={600}>
         <Box sx={{ display: 'grid', gap: 2 }}>
-          <Paper elevation={0} sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}>
+          <Paper elevation={0} sx={cardSx}>
             <Box sx={{ p: 2 }}>
               <Typography variant="h5">Send an announcement</Typography>
               <Typography variant="body2" color="text.secondary">Shoppers see it in the store's bell and as a phone notification if they turned notifications on.</Typography>
@@ -95,7 +96,7 @@ const Announcements = () => {
             </Box>
           </Paper>
 
-          <Paper elevation={0} sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}>
+          <Paper elevation={0} sx={cardSx}>
             <Box sx={{ p: 2 }}><Typography variant="h6">Sent</Typography></Box>
             <Divider />
             {loading ? (

@@ -9,6 +9,7 @@ import { useSnackbar } from 'notistack';
 import api from '../api';
 import { isSuperAdmin, getBusiness } from '../auth';
 import ResponsiveTable from '../components/ResponsiveTable';
+import { cardSx } from '../theme';
 
 const emptyForm = { question: '', answer: '', order: '' };
 
@@ -92,9 +93,9 @@ const FAQ = () => {
   const selectedBusinessName = businesses.find(b => b._id === selectedBusiness)?.name || '';
 
   return (
-    <Box sx={{ mt: 2 }}>
+    <Box>
       <Fade in timeout={600}>
-        <Paper elevation={0} sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}>
+        <Paper elevation={0} sx={cardSx}>
           <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
             <Box>
               <Typography variant="h5">FAQ</Typography>

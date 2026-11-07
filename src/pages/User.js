@@ -5,6 +5,7 @@ import { Edit, Delete } from '@mui/icons-material';
 import api from '../api';
 import { isSuperAdmin, getBusiness } from '../auth';
 import ResponsiveTable from '../components/ResponsiveTable';
+import { cardSx } from '../theme';
 
 const User = () => {
   const superAdmin = isSuperAdmin();
@@ -102,9 +103,9 @@ const User = () => {
   };
 
   return (
-    <Box sx={{ mt: isMobile ? 2 : 4 }}>
+    <Box>
       <Fade in timeout={600}>
-        <Paper elevation={isMobile ? 0 : 4} sx={{ borderRadius: 2, bgcolor: 'background.paper', boxShadow: isMobile ? 0 : 1 }}>
+        <Paper elevation={0} sx={cardSx}>
           <Box sx={{ display: 'flex', alignItems: 'center', p: isMobile ? 1.5 : 2, justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
             <Typography variant={isMobile ? 'h6' : 'h5'} sx={{ flexGrow: 1 }} gutterBottom>
               Users

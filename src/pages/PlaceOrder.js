@@ -7,6 +7,7 @@ import {
 import { Add, Remove, ShoppingCart, Logout } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import api, { userApi } from '../api';
+import { APP_NAME } from '../theme';
 
 // Mirrors the server's "N for ₹X" pricing (ecom/src/pricing.js): products with the same
 // price and offer are pooled. Returns { [productId]: total } for the given cart items.
@@ -135,7 +136,7 @@ const PlaceOrder = () => {
         amount: order.amount,
         currency: order.currency,
         order_id: order.razorpayOrderId,
-        name: 'Ecom Store',
+        name: APP_NAME,
         description: 'Order Payment',
         handler: async (response) => {
           try {

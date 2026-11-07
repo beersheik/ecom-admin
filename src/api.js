@@ -14,8 +14,9 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
-      ['token', 'role', 'business', 'businessName'].forEach(k => localStorage.removeItem(k));
+    // A 401 from the login form itself means a wrong password, not an expired session.
+    if (err.response?.status === 401 && !err.config?.url?.includes('/admin/login')) {
+      ['token', 'role', 'business', 'businessName', 'adminName', 'adminEmail'].forEach(k => localStorage.removeItem(k));
       window.location.href = '/login';
     }
     return Promise.reject(err);
