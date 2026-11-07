@@ -8,6 +8,7 @@ import {
 } from '@mui/icons-material';
 import api from '../api';
 import ResponsiveTable from '../components/ResponsiveTable';
+import { isSuperAdmin } from '../auth';
 
 const STATUS_COLOR = { paid: 'success', pending: 'warning', verifying: 'info', failed: 'error', refunded: 'default' };
 
@@ -40,6 +41,7 @@ function StatCard({ label, value, icon, gradient, loading }) {
 }
 
 const Dashboard = () => {
+  const superAdmin = isSuperAdmin();
   const [stats, setStats] = useState({ orders: 0, revenue: 0, products: 0, users: 0 });
   const [recentOrders, setRecentOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -84,7 +86,7 @@ const Dashboard = () => {
         <Paper elevation={0} sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}>
           <Box sx={{ px: { xs: 2, sm: 3 }, py: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>Recent Orders</Typography>
-            <Typography variant="body2" color="text.secondary">Latest 6 orders across all businesses</Typography>
+            <Typography variant="body2" color="text.secondary">Latest 6 orders{superAdmin ? ' across all businesses' : ''}</Typography>
           </Box>
           <Divider />
           {loading ? (
@@ -99,7 +101,8 @@ const Dashboard = () => {
               headSx={{ '& th': { fontWeight: 700, color: 'text.secondary', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 } }}
               columns={[
                 { label: 'Order ID', render: o => o._id?.slice(-8), cellSx: { fontFamily: 'monospace', fontSize: 11, color: 'text.secondary' } },
-                { label: 'Business', render: o => o.business?.name || '—' },
+                // A business admin only sees their own business, so the column would repeat one name.
+                ...(superAdmin ? [{ label: 'Business', render: o => o.business?.name || '—' }] : []),
                 { label: 'Customer', primary: true, render: o => o.user?.name || o.user?.email || '—' },
                 { label: 'Amount', align: 'right', render: o => `₹${o.amount}`, cellSx: { fontWeight: 600 } },
                 { label: 'Status', render: o => (

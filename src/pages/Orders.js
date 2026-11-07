@@ -7,6 +7,7 @@ import {
 import { useSnackbar } from 'notistack';
 import api from '../api';
 import ResponsiveTable from '../components/ResponsiveTable';
+import { isSuperAdmin } from '../auth';
 
 const STATUS_COLOR = {
   paid: 'success',
@@ -225,6 +226,7 @@ function OrderDetails({ order, onUpdated }) {
 }
 
 const Orders = () => {
+  const superAdmin = isSuperAdmin();
   const { enqueueSnackbar } = useSnackbar();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -272,7 +274,8 @@ const Orders = () => {
               rows={shown}
               columns={[
                 { label: 'Order ID', render: o => o._id, cellSx: { fontFamily: 'monospace', fontSize: 12 } },
-                { label: 'Business', render: o => o.business?.name || '—' },
+                // A business admin only sees their own business, so the column would repeat one name.
+                ...(superAdmin ? [{ label: 'Business', render: o => o.business?.name || '—' }] : []),
                 { label: 'Customer', primary: true, render: o => o.user?.name || o.user?.email || '—' },
                 { label: 'Amount', align: 'right', render: o => `₹${o.amount}` },
                 { label: 'Payment', render: o => <PaymentChips order={o} /> },
